@@ -1,155 +1,128 @@
-// ============================================
-// TABKEEPER BACKGROUND SCRIPT
-// ============================================
-// This runs constantly in the background
-// It listens for tab closes and saves them
-// ============================================
+// TabKeeper Background - WORKING VERSION
+// This saves tabs when they close
 
-// Maximum number of closed tabs to store
-const MAX_CLOSED_TABS = 25;
-
-// Array to store closed tabs in memory
 let closedTabsList = [];
 
-// ============================================
-// LOAD SAVED DATA WHEN EXTENSION STARTS
-// ============================================
-// chrome.storage.local is like localStorage but for extensions
-// It persists even after browser restart
-
-chrome.storage.local.get(["closedTabs"], (result) => {
-  if (result.closedTabs && Array.isArray(result.closedTabs)) {
-    closedTabsList = result.closedTabs;
+// Load saved tabs when extension starts
+chrome.storage.local.get(["closedTabsList"], (result) => {
+  if (result.closedTabsList) {
+    closedTabsList = result.closedTabsList;
     console.log("Loaded", closedTabsList.length, "saved tabs");
   }
 });
 
-// ============================================
-// SAVE TO STORAGE HELPER FUNCTION
-// ============================================
-
+// Save to storage
 function saveToStorage() {
-  chrome.storage.local.set({ closedTabs: closedTabsList });
-  console.log("Saved", closedTabsList.length, "tabs to storage");
+  chrome.storage.local.set({ closedTabsList: closedTabsList });
+  console.log("Saved", closedTabsList.length, "tabs");
 }
 
 // ============================================
-// TRACK TABS WHEN CREATED
+// METHOD 1: Use webNavigation to capture pages
 // ============================================
-// We need to store tab info BEFORE they close
-// Because when a tab closes, we lose its URL/title
 
-let activeTabs = new Map(); // Map stores key-value pairs (tabId -> tabInfo)
-
-// Listen for new tabs being created
-chrome.tabs.onCreated.addListener((tab) => {
-  // Only track valid web pages (ignore chrome:// pages)
-  if (tab.id && tab.url && !tab.url.startsWith("chrome://")) {
-    activeTabs.set(tab.id, {
-      url: tab.url,
-      title: tab.title || "New Tab",
-      favicon: tab.favIconUrl || "",
+// Store page info when a page finishes loading
+chrome.webNavigation.onCompleted.addListener((details) => {
+  // Only track main frame (not iframes)
+  if (details.frameId === 0) {
+    // Get the tab info
+    chrome.tabs.get(details.tabId, (tab) => {
+      if (tab && tab.url && tab.url.startsWith("http")) {
+        // Store in a Map with tabId as key
+        chrome.storage.local.set(
+          {
+            [`page_${details.tabId}`]: {
+              url: tab.url,
+              title: tab.title,
+              favicon: tab.favIconUrl || "",
+              timestamp: Date.now(),
+            },
+          },
+          () => {
+            console.log(
+              "📄 Stored page info for tab",
+              details.tabId,
+              tab.title,
+            );
+          },
+        );
+      }
     });
-    console.log("Tracking new tab:", tab.title);
   }
 });
 
-// Listen for tab updates (page navigates, title changes, etc.)
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  // Update our stored info when tab changes
-  if (tab.url && !tab.url.startsWith("chrome://")) {
-    activeTabs.set(tabId, {
-      url: tab.url,
-      title: tab.title || "Loading...",
-      favicon: tab.favIconUrl || "",
-    });
-    console.log("Updated tab info:", tab.title);
-  }
-});
-
-// ============================================
-// MAIN EVENT: WHEN TAB CLOSES
-// ============================================
-
+// When a tab is removed (closed)
 chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
-  console.log("Tab closed, ID:", tabId);
+  console.log("❌ Tab closed:", tabId);
 
-  // Check if we were tracking this tab
-  if (activeTabs.has(tabId)) {
-    const tabInfo = activeTabs.get(tabId);
+  // Get the stored page info for this tab
+  chrome.storage.local.get([`page_${tabId}`], (result) => {
+    const pageInfo = result[`page_${tabId}`];
 
-    // Create a record of the closed tab
-    const closedTab = {
-      id: Date.now(), // Unique ID using current timestamp
-      url: tabInfo.url,
-      title: tabInfo.title,
-      favicon: tabInfo.favicon,
-      closedAt: Date.now(), // When it was closed
-    };
+    if (pageInfo && pageInfo.url) {
+      // Create closed tab record
+      const closedTab = {
+        id: Date.now(),
+        url: pageInfo.url,
+        title: pageInfo.title || "Unknown",
+        favicon: pageInfo.favicon,
+        closedAt: Date.now(),
+      };
 
-    // Add to the BEGINNING of the array (most recent first)
-    closedTabsList.unshift(closedTab);
+      // Add to list
+      closedTabsList.unshift(closedTab);
 
-    // Keep only the most recent MAX_CLOSED_TABS
-    if (closedTabsList.length > MAX_CLOSED_TABS) {
-      closedTabsList = closedTabsList.slice(0, MAX_CLOSED_TABS);
-    }
+      // Keep only last 25
+      if (closedTabsList.length > 25) {
+        closedTabsList = closedTabsList.slice(0, 25);
+      }
 
-    // Save to permanent storage
-    saveToStorage();
-
-    // Remove from active tracking
-    activeTabs.delete(tabId);
-
-    console.log("Saved closed tab:", tabInfo.title);
-  } else {
-    console.log("Tab wasn't being tracked (probably chrome:// page)");
-  }
-});
-
-// ============================================
-// KEYBOARD SHORTCUT HANDLER
-// ============================================
-// When user presses Ctrl+Shift+Y (or Cmd+Shift+Y on Mac)
-
-chrome.commands.onCommand.addListener((command) => {
-  if (command === "restore-last-tab" && closedTabsList.length > 0) {
-    const lastTab = closedTabsList[0];
-    console.log("Restoring last tab:", lastTab.title);
-
-    // Create a new tab with the same URL
-    chrome.tabs.create({ url: lastTab.url, active: true });
-
-    // Remove from list after restore
-    closedTabsList.shift();
-    saveToStorage();
-  }
-});
-
-// ============================================
-// AUTO-CLEANUP OLD TABS (7 days)
-// ============================================
-// Runs once per day to delete tabs older than 7 days
-
-setInterval(
-  () => {
-    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const originalCount = closedTabsList.length;
-
-    const filtered = closedTabsList.filter(
-      (tab) => tab.closedAt > sevenDaysAgo,
-    );
-
-    if (filtered.length !== originalCount) {
-      closedTabsList = filtered;
+      // Save to storage
       saveToStorage();
-      console.log(
-        "Cleaned up old tabs. Removed:",
-        originalCount - filtered.length,
+
+      // Clean up stored page info
+      chrome.storage.local.remove(`page_${tabId}`);
+
+      console.log("✅ SAVED:", pageInfo.title);
+    } else {
+      console.log("⚠️ No page info found for tab", tabId);
+
+      // FALLBACK: Try to get from last active tab
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0] && tabs[0].url) {
+          console.log("🔄 Fallback: Using current tab info");
+        }
+      });
+    }
+  });
+});
+
+// ============================================
+// Also capture when tabs update (navigation)
+// ============================================
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.url || changeInfo.title) {
+    if (tab.url && tab.url.startsWith("http")) {
+      chrome.storage.local.set(
+        {
+          [`page_${tabId}`]: {
+            url: tab.url,
+            title: tab.title,
+            favicon: tab.favIconUrl || "",
+            timestamp: Date.now(),
+          },
+        },
+        () => {
+          console.log("🔄 Updated page info for tab", tabId);
+        },
       );
     }
-  },
-  24 * 60 * 60 * 1000,
-); // 24 hours in milliseconds
+  }
+});
 
-console.log("TabKeeper background script loaded!");
+// Also capture when tabs are created
+chrome.tabs.onCreated.addListener((tab) => {
+  console.log("📑 Tab created:", tab.id);
+});
+
+console.log("🚀 TabKeeper background loaded with webNavigation!");

@@ -1,24 +1,22 @@
 // ============================================
-// TABKEEPER POPUP SCRIPT
-// ============================================
-// This runs when user clicks the extension icon
-// It displays closed tabs and handles restore/clicks
+// TABKEEPER PRO - COMPLETE POPUP SCRIPT
 // ============================================
 
-// Global variable to store closed tabs data
 let closedTabsData = [];
+let currentFilter = "all"; // all, pinned, today, week
+let searchTerm = "";
 
 // ============================================
-// HELPER: Format time (e.g., "5 minutes ago")
+// UTILITY FUNCTIONS
 // ============================================
 
 function formatTime(timestamp) {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
 
-  if (seconds < 60) return `${seconds} second${seconds !== 1 ? "s" : ""} ago`;
+  if (seconds < 60) return `${seconds} sec ago`;
   if (seconds < 3600) {
     const minutes = Math.floor(seconds / 60);
-    return `${minutes} minute${minutes !== 1 ? "s" : ""} ago`;
+    return `${minutes} min ago`;
   }
   if (seconds < 86400) {
     const hours = Math.floor(seconds / 3600);
@@ -27,10 +25,6 @@ function formatTime(timestamp) {
   const days = Math.floor(seconds / 86400);
   return `${days} day${days !== 1 ? "s" : ""} ago`;
 }
-
-// ============================================
-// HELPER: Escape HTML to prevent XSS attacks
-// ============================================
 
 function escapeHtml(str) {
   if (!str) return "";
@@ -42,177 +36,346 @@ function escapeHtml(str) {
     .replace(/'/g, "&#39;");
 }
 
+function isToday(timestamp) {
+  const today = new Date().toDateString();
+  const date = new Date(timestamp).toDateString();
+  return today === date;
+}
+
+function isThisWeek(timestamp) {
+  const now = new Date();
+  const date = new Date(timestamp);
+  const oneWeekAgo = new Date(now.setDate(now.getDate() - 7));
+  return date >= oneWeekAgo;
+}
+
 // ============================================
-// MAIN: Display tabs in popup
+// DISPLAY TABS
 // ============================================
 
-function displayTabs(searchTerm = "") {
+function displayTabs() {
   const tabsListDiv = document.getElementById("tabsList");
   const tabCountSpan = document.getElementById("tabCount");
+  const pinnedCountSpan = document.getElementById("pinnedCount");
 
-  // Filter tabs by search term if provided
-  let filteredTabs = closedTabsData;
+  let filteredTabs = [...closedTabsData];
+
+  // Apply filters
+  if (currentFilter === "pinned") {
+    filteredTabs = filteredTabs.filter((tab) => tab.isPinned === true);
+  } else if (currentFilter === "today") {
+    filteredTabs = filteredTabs.filter((tab) => isToday(tab.closedAt));
+  } else if (currentFilter === "week") {
+    filteredTabs = filteredTabs.filter((tab) => isThisWeek(tab.closedAt));
+  }
+
+  // Apply search
   if (searchTerm && searchTerm.trim() !== "") {
     const term = searchTerm.toLowerCase();
-    filteredTabs = closedTabsData.filter(
+    filteredTabs = filteredTabs.filter(
       (tab) =>
         tab.title.toLowerCase().includes(term) ||
         tab.url.toLowerCase().includes(term),
     );
   }
 
-  // Update count in footer
+  // Update counts
+  const pinnedCount = closedTabsData.filter((t) => t.isPinned).length;
   tabCountSpan.textContent = filteredTabs.length;
+  pinnedCountSpan.textContent = `📌 ${pinnedCount}`;
 
-  // Show empty state if no tabs
+  // Empty state
   if (filteredTabs.length === 0) {
-    if (closedTabsData.length === 0) {
-      tabsListDiv.innerHTML =
-        '<div class="empty-state">📭 No closed tabs yet. Close a tab to see it here!</div>';
-    } else {
-      tabsListDiv.innerHTML =
-        '<div class="empty-state">🔍 No matching tabs found</div>';
-    }
+    let message = "✨ No closed tabs found";
+    if (currentFilter === "pinned")
+      message = "📌 No pinned tabs. Click 📌 on any tab to pin it!";
+    if (currentFilter === "today") message = "📅 No tabs closed today";
+    if (currentFilter === "week") message = "🗓️ No tabs closed this week";
+    if (searchTerm) message = `🔍 No results for "${searchTerm}"`;
+
+    tabsListDiv.innerHTML = `<div class="empty-state">${message}</div>`;
     return;
   }
 
-  // Generate HTML for each tab
+  // Generate HTML
   tabsListDiv.innerHTML = filteredTabs
     .map(
       (tab) => `
-    <div class="tab-item" data-url="${escapeHtml(tab.url)}" data-tab-id="${tab.id}">
+    <div class="tab-item ${tab.isPinned ? "pinned" : ""}" data-url="${escapeHtml(tab.url)}" data-tab-id="${tab.id}">
       <img class="favicon" src="${escapeHtml(tab.favicon)}" onerror="this.src='https://www.google.com/s2/favicons?domain=google.com'">
       <div class="tab-info">
-        <div class="tab-title">${escapeHtml(tab.title)}</div>
+        <div class="tab-title" title="${escapeHtml(tab.title)}">
+          ${tab.isPinned ? "📌 " : ""}${escapeHtml(tab.title)}
+        </div>
         <div class="tab-url">${escapeHtml(tab.url)}</div>
         <div class="tab-time">⏱️ ${formatTime(tab.closedAt)}</div>
       </div>
-      <button class="restore-btn" data-url="${escapeHtml(tab.url)}">↩️ Restore</button>
+      <div class="tab-actions">
+        <button class="pin-btn" data-tab-id="${tab.id}" data-url="${escapeHtml(tab.url)}" title="${tab.isPinned ? "Unpin" : "Pin"}">
+          ${tab.isPinned ? "📌" : "📍"}
+        </button>
+        <button class="restore-btn" data-url="${escapeHtml(tab.url)}" title="Restore">↩️</button>
+      </div>
     </div>
   `,
     )
     .join("");
 
-  // Add click listeners to all restore buttons
+  // Add event listeners
   document.querySelectorAll(".restore-btn").forEach((btn) => {
     btn.addEventListener("click", (event) => {
-      event.stopPropagation(); // Prevent triggering the parent tab-item click
-      const url = btn.getAttribute("data-url");
-      restoreTab(url);
+      event.stopPropagation();
+      restoreTab(btn.getAttribute("data-url"));
     });
   });
 
-  // Add click listeners to entire tab items (click anywhere to restore)
+  document.querySelectorAll(".pin-btn").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      togglePinTab(
+        btn.getAttribute("data-tab-id"),
+        btn.getAttribute("data-url"),
+      );
+    });
+  });
+
   document.querySelectorAll(".tab-item").forEach((item) => {
     item.addEventListener("click", (event) => {
-      // Don't trigger if clicking the restore button (already handled)
       if (event.target.classList.contains("restore-btn")) return;
-      const url = item.getAttribute("data-url");
-      restoreTab(url);
+      if (event.target.classList.contains("pin-btn")) return;
+      restoreTab(item.getAttribute("data-url"));
     });
   });
 }
 
 // ============================================
-// FUNCTION: Restore a closed tab
+// CORE FUNCTIONS
 // ============================================
 
 function restoreTab(url) {
-  console.log("Restoring tab:", url);
-
-  // Create a new tab with the same URL
   chrome.tabs.create({ url: url, active: true });
 
-  // Remove from our data
   const index = closedTabsData.findIndex((tab) => tab.url === url);
   if (index !== -1) {
     closedTabsData.splice(index, 1);
-    // Save updated list to storage
     chrome.storage.local.set({ closedTabs: closedTabsData });
-    // Refresh display
-    const searchInput = document.getElementById("searchInput");
-    displayTabs(searchInput.value);
+    displayTabs();
+  }
+}
+
+function togglePinTab(tabId, tabUrl) {
+  const tabIndex = closedTabsData.findIndex(
+    (tab) => tab.id == tabId || tab.url === tabUrl,
+  );
+
+  if (tabIndex !== -1) {
+    closedTabsData[tabIndex].isPinned = !closedTabsData[tabIndex].isPinned;
+    chrome.storage.local.set({ closedTabs: closedTabsData });
+    displayTabs();
   }
 }
 
 // ============================================
-// FUNCTION: Clear all closed tabs
+// FILTER FUNCTIONS
 // ============================================
+
+function setFilter(filter) {
+  currentFilter = filter;
+
+  // Update button styles
+  document.querySelectorAll(".filter-btn").forEach((btn) => {
+    btn.classList.remove("active");
+  });
+
+  if (filter === "pinned")
+    document.getElementById("pinFilterBtn")?.classList.add("active");
+  if (filter === "today")
+    document.getElementById("todayFilterBtn")?.classList.add("active");
+  if (filter === "week")
+    document.getElementById("weekFilterBtn")?.classList.add("active");
+
+  displayTabs();
+}
+
+function clearFilters() {
+  currentFilter = "all";
+  searchTerm = "";
+  document.getElementById("searchInput").value = "";
+  document.querySelectorAll(".filter-btn").forEach((btn) => {
+    btn.classList.remove("active");
+  });
+  displayTabs();
+}
+
+// ============================================
+// EXPORT/IMPORT
+// ============================================
+
+function exportTabs() {
+  if (closedTabsData.length === 0) {
+    alert("📭 No tabs to export!");
+    return;
+  }
+
+  const exportData = {
+    exportDate: new Date().toISOString(),
+    version: "3.0",
+    totalTabs: closedTabsData.length,
+    tabs: closedTabsData,
+  };
+
+  const jsonString = JSON.stringify(exportData, null, 2);
+  const blob = new Blob([jsonString], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `tabkeeper-backup-${Date.now()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  alert(`✅ Exported ${closedTabsData.length} tabs!`);
+}
+
+function importTabs() {
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = ".json";
+
+  fileInput.onchange = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const imported = JSON.parse(e.target.result);
+        let tabsToImport =
+          imported.tabs || (Array.isArray(imported) ? imported : []);
+
+        const validTabs = tabsToImport
+          .filter((tab) => tab.url && tab.title)
+          .map((tab) => ({
+            ...tab,
+            id: Date.now() + Math.random(),
+            importedAt: Date.now(),
+          }));
+
+        if (validTabs.length === 0) throw new Error("No valid tabs");
+
+        closedTabsData = [...validTabs, ...closedTabsData];
+
+        // Limit
+        const maxTabs = 50;
+        if (closedTabsData.length > maxTabs) {
+          closedTabsData = closedTabsData.slice(0, maxTabs);
+        }
+
+        chrome.storage.local.set({ closedTabs: closedTabsData });
+        displayTabs();
+        alert(`✅ Imported ${validTabs.length} tabs!`);
+      } catch (error) {
+        alert("❌ Invalid file. Please export a valid TabKeeper backup.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  fileInput.click();
+}
 
 function clearAllTabs() {
   if (
     confirm(
-      "Are you sure? This will permanently delete all closed tabs from history.",
+      "⚠️ Delete ALL closed tabs? Pinned tabs will also be deleted. This cannot be undone.",
     )
   ) {
     closedTabsData = [];
     chrome.storage.local.set({ closedTabs: [] });
     displayTabs();
-    console.log("Cleared all closed tabs");
+    alert("✅ All tabs cleared!");
   }
 }
 
+function showStats() {
+  const total = closedTabsData.length;
+  const pinned = closedTabsData.filter((t) => t.isPinned).length;
+  const today = closedTabsData.filter((t) => isToday(t.closedAt)).length;
+  const week = closedTabsData.filter((t) => isThisWeek(t.closedAt)).length;
+
+  alert(
+    `📊 TabKeeper Statistics\n\n` +
+      `📋 Total saved: ${total}\n` +
+      `📌 Pinned: ${pinned}\n` +
+      `📅 Closed today: ${today}\n` +
+      `🗓️ Closed this week: ${week}\n\n` +
+      `💡 Tip: Press Ctrl+Shift+Y to restore last tab!`,
+  );
+}
+
 // ============================================
-// FUNCTION: Load data from storage
+// LOAD DATA & INIT
 // ============================================
 
 function loadData() {
   chrome.storage.local.get(["closedTabs"], (result) => {
-    console.log("Loaded data from storage:", result);
-
     if (result.closedTabs && Array.isArray(result.closedTabs)) {
       closedTabsData = result.closedTabs;
+      console.log("Loaded", closedTabsData.length, "tabs");
     } else {
       closedTabsData = [];
     }
-
     displayTabs();
   });
 }
 
 // ============================================
-// EVENT LISTENERS (runs when popup opens)
+// EVENT LISTENERS
 // ============================================
 
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("Popup opened, loading data...");
   loadData();
 
-  // Clear all button
-  const clearBtn = document.getElementById("clearAllBtn");
-  if (clearBtn) {
-    clearBtn.addEventListener("click", clearAllTabs);
-  }
+  // Buttons
+  document.getElementById("exportBtn")?.addEventListener("click", exportTabs);
+  document.getElementById("importBtn")?.addEventListener("click", importTabs);
+  document
+    .getElementById("clearAllBtn")
+    ?.addEventListener("click", clearAllTabs);
+  document.getElementById("statsBtn")?.addEventListener("click", showStats);
+  document.getElementById("settingsBtn")?.addEventListener("click", () => {
+    chrome.runtime.openOptionsPage();
+  });
+  document.getElementById("refreshBtn")?.addEventListener("click", () => {
+    loadData();
+  });
 
-  // Settings button (future feature)
-  const settingsBtn = document.getElementById("settingsBtn");
-  if (settingsBtn) {
-    settingsBtn.addEventListener("click", () => {
-      // TODO: Open settings page
-      alert(
-        "⚙️ Settings page coming soon!\n\nFeatures planned:\n• Max tabs to save\n• Auto-cleanup days\n• Dark mode",
-      );
-    });
-  }
+  // Filters
+  document
+    .getElementById("pinFilterBtn")
+    ?.addEventListener("click", () => setFilter("pinned"));
+  document
+    .getElementById("todayFilterBtn")
+    ?.addEventListener("click", () => setFilter("today"));
+  document
+    .getElementById("weekFilterBtn")
+    ?.addEventListener("click", () => setFilter("week"));
+  document
+    .getElementById("clearFiltersBtn")
+    ?.addEventListener("click", clearFilters);
 
-  // Search input
-  const searchInput = document.getElementById("searchInput");
-  if (searchInput) {
-    searchInput.addEventListener("input", (event) => {
-      displayTabs(event.target.value);
-    });
-  }
+  // Search
+  document.getElementById("searchInput")?.addEventListener("input", (e) => {
+    searchTerm = e.target.value;
+    displayTabs();
+  });
 });
 
-// ============================================
-// LISTEN FOR STORAGE CHANGES (updates in real-time)
-// ============================================
-
+// Listen for storage changes
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (changes.closedTabs) {
-    console.log("Storage changed, updating display...");
     closedTabsData = changes.closedTabs.newValue || [];
-    const searchInput = document.getElementById("searchInput");
-    displayTabs(searchInput ? searchInput.value : "");
+    displayTabs();
   }
 });

@@ -3,36 +3,48 @@
 <head>
   <meta charset="UTF-8">
   <link rel="stylesheet" href="popup.css">
-  <style>
-    /* Quick inline styles for loading state */
-    body {
-      margin: 0;
-      padding: 0;
-    }
-  </style>
 </head>
 <body>
   <div class="container">
-    <!-- HEADER SECTION -->
+    <!-- Header -->
     <div class="header">
-      <h3>📂 Recently Closed Tabs</h3>
-      <button id="clearAllBtn" title="Clear all">🗑️</button>
+      <h3>📂 TabKeeper Pro</h3>
+      <div class="header-buttons">
+        <button id="statsBtn" title="Statistics">📊</button>
+        <button id="exportBtn" title="Export">📤</button>
+        <button id="importBtn" title="Import">📥</button>
+        <button id="clearAllBtn" title="Clear all">🗑️</button>
+      </div>
     </div>
     
-    <!-- SEARCH BOX -->
+    <!-- Search -->
     <div class="search-box">
-      <input type="text" id="searchInput" placeholder="🔍 Search closed tabs...">
+      <input type="text" id="searchInput" placeholder="🔍 Search by title or URL...">
     </div>
     
-    <!-- LIST OF CLOSED TABS (filled by JavaScript) -->
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <button id="pinFilterBtn" class="filter-btn">📌 Pinned Only</button>
+      <button id="todayFilterBtn" class="filter-btn">📅 Today</button>
+      <button id="weekFilterBtn" class="filter-btn">🗓️ This Week</button>
+      <button id="clearFiltersBtn" class="filter-btn clear">✖️ Clear</button>
+    </div>
+    
+    <!-- Tabs List -->
     <div id="tabsList" class="tabs-list">
-      <div class="empty-state">Loading...</div>
+      <div class="empty-state">✨ No closed tabs yet</div>
     </div>
     
-    <!-- FOOTER WITH STATS -->
+    <!-- Footer -->
     <div class="footer">
-      <span id="tabCount">0</span> tabs saved
-      <button id="settingsBtn" class="icon-btn" title="Settings">⚙️</button>
+      <div class="footer-left">
+        <span id="tabCount">0</span> tabs
+        <span id="pinnedCount" class="pinned-badge">📌 0</span>
+      </div>
+      <div class="footer-buttons">
+        <button id="settingsBtn" class="icon-btn" title="Settings">⚙️</button>
+        <button id="refreshBtn" class="icon-btn" title="Refresh">🔄</button>
+      </div>
     </div>
   </div>
   

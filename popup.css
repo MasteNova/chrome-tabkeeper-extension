@@ -1,222 +1,320 @@
-/* ============================================
-   TABKEEPER POPUP STYLES
-   ============================================ */
-
-/* Reset margins and box sizing */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* Main popup window - fixed width */
 body {
-  width: 450px;
-  max-height: 550px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  width: 520px;
+  max-height: 600px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
   background: #ffffff;
+  color: #111827;
+  overflow: hidden;
 }
 
-/* Flex container that fills height */
 .container {
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 400px;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.12);
 }
 
-/* ============================================
-   HEADER (purple gradient)
-   ============================================ */
-
+/* ==================== HEADER ==================== */
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #622B14 0%, #4A2110 100%);
   color: white;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .header h3 {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
+  letter-spacing: -0.3px;
 }
 
-/* Clear all button */
-#clearAllBtn {
-  background: rgba(255, 255, 255, 0.2);
+.header-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.header-buttons button {
+  background: rgba(255, 255, 255, 0.15);
   border: none;
   color: white;
-  font-size: 18px;
+  font-size: 14px;
+  padding: 7px 12px;
+  border-radius: 8px;
   cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 6px;
-  transition: background 0.2s;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
 }
 
-#clearAllBtn:hover {
-  background: rgba(255, 255, 255, 0.3);
+.header-buttons button:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
 }
 
-/* ============================================
-   SEARCH BOX
-   ============================================ */
-
+/* ==================== SEARCH ==================== */
 .search-box {
-  padding: 12px;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
 }
 
 #searchInput {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 12px 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 14.5px;
   outline: none;
-  transition: border-color 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #f8fafc;
 }
 
 #searchInput:focus {
-  border-color: #667eea;
+  border-color: #622B14;
+  box-shadow: 0 0 0 4px rgba(98, 43, 20, 0.15);
+  background: #ffffff;
 }
 
-/* ============================================
-   TABS LIST (scrollable area)
-   ============================================ */
+/* ==================== FILTER BAR ==================== */
+.filter-bar {
+  padding: 12px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: #ffffff;
+}
 
+.filter-btn {
+  background: #f1f5f9;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #475569;
+}
+
+.filter-btn:hover {
+  background: #e2e8f0;
+  transform: translateY(-1px);
+}
+
+.filter-btn.active {
+  background: #622B14;
+  color: white;
+  box-shadow: 0 2px 8px -2px rgba(98, 43, 20, 0.3);
+}
+
+.filter-btn.clear {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.filter-btn.clear:hover {
+  background: #fecaca;
+}
+
+/* ==================== TABS LIST ==================== */
 .tabs-list {
   flex: 1;
   max-height: 400px;
   overflow-y: auto;
-  overflow-x: hidden;
+  padding: 4px 0;
+  background: #ffffff;
 }
 
-/* Message when no tabs */
 .empty-state {
   text-align: center;
-  padding: 40px 20px;
-  color: #9ca3af;
-  font-size: 14px;
+  padding: 60px 30px;
+  color: #94a3b8;
+  font-size: 14.5px;
+  line-height: 1.5;
 }
 
-/* Each individual tab item */
 .tab-item {
   display: flex;
   align-items: center;
-  padding: 12px;
-  border-bottom: 1px solid #f3f4f6;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f8fafc;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
 }
 
 .tab-item:hover {
-  background: #f9fafb;
+  background: #f8fafc;
+  transform: translateX(4px);
 }
 
-/* Favicon image */
+.tab-item.pinned {
+  background: linear-gradient(90deg, #f5e8d8 0%, #ffffff 100%);
+  border-left: 4px solid #622B14;
+}
+
+.tab-item.pinned:hover {
+  background: linear-gradient(90deg, #f0d9c0 0%, #f5e8d8 100%);
+}
+
+/* Tab Content */
 .favicon {
   width: 20px;
   height: 20px;
-  margin-right: 12px;
+  margin-right: 14px;
   flex-shrink: 0;
+  border-radius: 4px;
 }
 
-/* Tab text info container */
 .tab-info {
   flex: 1;
-  min-width: 0; /* Allows text truncation */
+  min-width: 0;
 }
 
 .tab-title {
   font-size: 14px;
   font-weight: 500;
-  color: #111827;
-  margin-bottom: 4px;
+  color: #1e2937;
+  margin-bottom: 3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .tab-url {
-  font-size: 11px;
-  color: #6b7280;
-  margin-bottom: 4px;
+  font-size: 12px;
+  color: #64748b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .tab-time {
-  font-size: 10px;
-  color: #9ca3af;
+  font-size: 10.5px;
+  color: #94a3b8;
+  margin-top: 4px;
 }
 
-/* Restore button */
+/* Actions */
+.tab-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.pin-btn, .restore-btn {
+  border: none;
+  font-size: 12.5px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 500;
+}
+
+.pin-btn {
+  background: #622B14;
+  color: white;
+}
+
+.pin-btn:hover {
+  background: #4A2110;
+  transform: scale(1.05);
+}
+
 .restore-btn {
   background: #10b981;
-  border: none;
   color: white;
-  font-size: 14px;
-  padding: 6px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s;
-  flex-shrink: 0;
-  margin-left: 8px;
 }
 
 .restore-btn:hover {
   background: #059669;
+  transform: scale(1.05);
 }
 
-/* ============================================
-   FOOTER
-   ============================================ */
-
+/* ==================== FOOTER ==================== */
 .footer {
-  padding: 10px 16px;
-  border-top: 1px solid #e5e7eb;
-  font-size: 12px;
-  color: #6b7280;
+  padding: 12px 20px;
+  border-top: 1px solid #f1f5f9;
+  background: #f8fafc;
+  font-size: 12.5px;
+  color: #64748b;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f9fafb;
+}
+
+.pinned-badge {
+  background: #f5e8d8;
+  color: #622B14;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.footer-buttons {
+  display: flex;
+  gap: 6px;
 }
 
 .icon-btn {
   background: none;
   border: none;
-  font-size: 16px;
+  font-size: 18px;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: background 0.2s;
+  padding: 6px;
+  border-radius: 8px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #64748b;
 }
 
 .icon-btn:hover {
-  background: #e5e7eb;
+  background: #e2e8f0;
+  color: #1e2937;
+  transform: scale(1.1);
 }
 
-/* ============================================
-   SCROLLBAR STYLING
-   ============================================ */
-
+/* Scrollbar */
 .tabs-list::-webkit-scrollbar {
   width: 6px;
 }
 
 .tabs-list::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #f1f5f9;
+  border-radius: 10px;
 }
 
 .tabs-list::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 3px;
+  border-radius: 10px;
 }
 
 .tabs-list::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.tab-item {
+  animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
