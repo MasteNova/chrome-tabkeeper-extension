@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h3>📂 Recently Closed Tabs</h3>
+      <button id="clearAllBtn" title="Clear all">🗑️</button>
+    </div>
+    
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="🔍 Search closed tabs...">
+    </div>
+    
+    <div id="tabsList" class="tabs-list">
+      <div class="empty-state">No closed tabs yet</div>
+    </div>
+    
+    <div class="footer">
+      <span id="tabCount">0</span> tabs saved
+      <button id="settingsBtn" class="icon-btn">⚙️</button>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
