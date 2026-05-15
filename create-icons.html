@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head><title>Create Icons</title></head>
+<body>
+  <h2>Right-click each icon → Save Image As → Save to icons folder</h2>
+  <canvas id="c16" width="16" height="16"></canvas> 16x16<br>
+  <canvas id="c48" width="48" height="48"></canvas> 48x48<br>
+  <canvas id="c128" width="128" height="128"></canvas> 128x128<br>
+  <script>
+    function drawIcon(canvasId, size) {
+      let canvas = document.getElementById(canvasId);
+      let ctx = canvas.getContext('2d');
+      // Gradient background
+      let grad = ctx.createLinearGradient(0, 0, size, size);
+      grad.addColorStop(0, '#667eea');
+      grad.addColorStop(1, '#764ba2');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, size, size);
+      // Draw undo arrow
+      ctx.fillStyle = 'white';
+      ctx.font = `bold ${size * 0.5}px Arial`;
+      ctx.fillText('↩️', size * 0.25, size * 0.7);
+    }
+    drawIcon('c16', 16);
+    drawIcon('c48', 48);
+    drawIcon('c128', 128);
+  </script>
+</body>
+</html>

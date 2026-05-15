@@ -3,25 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <link rel="stylesheet" href="popup.css">
+  <style>
+    /* Quick inline styles for loading state */
+    body {
+      margin: 0;
+      padding: 0;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
+    <!-- HEADER SECTION -->
     <div class="header">
       <h3>📂 Recently Closed Tabs</h3>
       <button id="clearAllBtn" title="Clear all">🗑️</button>
     </div>
     
+    <!-- SEARCH BOX -->
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="🔍 Search closed tabs...">
     </div>
     
+    <!-- LIST OF CLOSED TABS (filled by JavaScript) -->
     <div id="tabsList" class="tabs-list">
-      <div class="empty-state">No closed tabs yet</div>
+      <div class="empty-state">Loading...</div>
     </div>
     
+    <!-- FOOTER WITH STATS -->
     <div class="footer">
       <span id="tabCount">0</span> tabs saved
-      <button id="settingsBtn" class="icon-btn">⚙️</button>
+      <button id="settingsBtn" class="icon-btn" title="Settings">⚙️</button>
     </div>
   </div>
   
